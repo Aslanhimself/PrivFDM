@@ -32,7 +32,7 @@ class DatasetWrapper(Dataset):
 
         item = torch.clamp((item + 1.0) / 2.0, min=0.0, max=1.0)
         if item.dim() == 2:
-            item = item.unsqueeze(-1)  # 变成 [H, W, 1]
+            item = item.unsqueeze(-1)  # [H, W, 1]
             item = item.repeat(1, 1, 3)  # [H, W, 1] → [H, W, 3]
 
         item = item.permute(2, 0, 1)
