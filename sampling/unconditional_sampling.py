@@ -94,9 +94,7 @@ def main():
     # # to image
     # grid_to_plot = 255. * rearrange(grid_to_plot, 'c h w -> h w c').detach().cpu().numpy()
     # plotted_imgs = Image.fromarray(grid_to_plot.astype(np.uint8))
-    # plotted_imgs.save("ours_mnist_eps1_uncond.jpg")
-    # plotted_imgs.save("ours_fashionmnist_eps1_uncond.jpg")
-    # plotted_imgs.save("ours_cifar10_eps1_uncond.jpg")
+
 
     grid = torch.stack(samples_list, 0)
     # grid_to_plot = rearrange(grid, 'n b c h w -> (n b) c h w')
@@ -104,7 +102,7 @@ def main():
     # to image
     # grid_to_plot = 255. * rearrange(grid_to_plot, 'c h w -> h w c').detach().cpu().numpy()
     # plotted_imgs = Image.fromarray(grid_to_plot.astype(np.uint8))
-    # 需要展示生成图片再使用下列代码否则生成图片太多报错
+    
     # plotted_imgs.save("test_class_uncond.jpg")
 
     # all_samples = torch.vstack(samples_list)
@@ -116,7 +114,6 @@ def main():
     torch.save(dic, 'unconditional_mnist_samples.pt')
     # torch.save(dic, 'unconditional_fashionmnist_samples.pt')
     # torch.save(dic, 'unconditional_cifar10_samples.pt')
-    # torch.save(dic, 'unconditional_celeba_samples.pt')
     # torch.save(dic, args.output)
 
 
