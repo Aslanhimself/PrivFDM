@@ -1,4 +1,4 @@
-name: ldm
+name: PrivFDM
 channels:
   - pytorch
   - nvidia
@@ -36,6 +36,7 @@ dependencies:
     - -e git+https://github.com/yuxiangw/autodp.git@5fad5e19c9958395453f234d259c01416a7ecbbc#egg=autodp
     - https://github.com/podgorskiy/dnnlib/releases/download/0.0.1/dnnlib-0.0.1-py3-none-any.whl
     - -e .
+
 
 
 
