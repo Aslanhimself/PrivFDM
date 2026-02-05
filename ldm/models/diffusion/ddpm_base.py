@@ -363,23 +363,6 @@ class DDPM(pl.LightningModule):
 
         return loss
 
-    # 保存 batch-averaged gradient函数1
-    # def _capture_gradients(self):
-    #     """累加当前 batch 的梯度"""
-    #     self.num_batches += 1
-    #     for name, param in self.model.named_parameters():
-    #         if param.grad is not None:
-    #             grad = param.grad.detach().clone().cpu()
-    #             if name not in self.epoch_grad_sum:
-    #                 self.epoch_grad_sum[name] = torch.zeros_like(grad)
-    #             self.epoch_grad_sum[name] += grad
-
-    # # 保存 batche-averaged gradient函数2
-    # def on_after_backward(self):
-    #     """非 DP 训练：在反向传播后捕获梯度"""
-    #     if self.trainer.training:
-    #         self._capture_gradients()
-
     @torch.no_grad()
     def validation_step(self, batch, batch_idx):
         loss, loss_dict_no_ema = self.shared_step(batch, self.phase)
@@ -395,30 +378,6 @@ class DDPM(pl.LightningModule):
     def on_train_batch_end(self, *args, **kwargs):
         if self.use_ema:
             self.model_ema(self.model)
-
-        # 保存 batche-averaged gradient函数3
-        # """DP 训练：在 optimizer.step() 后捕获梯度"""
-        # if self.trainer.training:
-        #     self._capture_gradients()
-
-    # 保存 batche-averaged gradient函数4
-    # def on_train_epoch_end(self, *args, **kwargs):
-    #     """每10个epoch保存一次梯度"""
-    #     if (self.current_epoch + 1) % 10 == 0:
-    #         avg_grad = {name: grad_sum / self.num_batches
-    #                     for name, grad_sum in self.epoch_grad_sum.items()}
-    #         # 加载已有数据或初始化
-    #         if os.path.exists(self.save_path):
-    #             all_gradients = torch.load(self.save_path)
-    #         else:
-    #             all_gradients = {}
-    #         # 更新并保存
-    #         all_gradients[self.current_epoch + 1] = avg_grad
-    #         torch.save(all_gradients, self.save_path)
-    #         print(f"Saved gradients at epoch {self.current_epoch + 1}")
-    #     # 重置累加器
-    #     self.epoch_grad_sum.clear()
-    #     self.num_batches = 0
 
     def _get_rows_from_list(self, samples):
         n_imgs_per_row = len(samples)
