@@ -117,13 +117,7 @@ def main():
     # grid_to_plot = 255. * rearrange(grid_to_plot, 'c h w -> h w c').detach().cpu().numpy()
     # plotted_imgs = Image.fromarray(grid_to_plot.astype(np.uint8))
 
-    # 需要展示生成图片再使用下列代码否则生成图片太多报错
-    # plotted_imgs.save("ours_mnist_eps1.jpg")
-    # plotted_imgs.save("ours_mnist_eps1_crossattn.jpg")
-    # plotted_imgs.save("ours_fashionmnist_eps1.jpg")
-    # plotted_imgs.save("ours_fashionmnist_eps1_crossattn.jpg")
-    # plotted_imgs.save("ours_cifar10_eps1.jpg")
-    # plotted_imgs.save("ours_cifar10_eps1_crossattn.jpg")
+    # plotted_imgs.save("mnist.jpg")
 
     labels = np.array(classes)
     labels = np.repeat(labels, n_samples_per_class)
@@ -136,7 +130,6 @@ def main():
     torch.save(dic, 'conditional_mnist_samples.pt')
     # torch.save(dic, 'conditional_fashionmnist_samples.pt')
     # torch.save(dic, 'conditional_cifar10_samples.pt')
-    # torch.save(dic, 'conditional_celeba_samples.pt')
 
 if __name__ == "__main__":
     main()
