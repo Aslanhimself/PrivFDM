@@ -119,12 +119,12 @@ model:
           target: torch.nn.Identity
       # Distribute VAE model for each client
       client_ckpt:
-        0: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_0/checkpoints/last.ckpt"
-        1: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_1/checkpoints/last.ckpt"
-        2: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_2/checkpoints/last.ckpt"
-        3: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_3/checkpoints/last.ckpt"
-        4: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_4/checkpoints/last.ckpt"
-        5: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_5/checkpoints/last.ckpt"
+        0: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_0/checkpoints/last.ckpt"
+        1: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_1/checkpoints/last.ckpt"
+        2: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_2/checkpoints/last.ckpt"
+        3: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_3/checkpoints/last.ckpt"
+        4: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_4/checkpoints/last.ckpt"
+        5: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_5/checkpoints/last.ckpt"
 
 data:
 
@@ -157,13 +157,3 @@ lightning:
     epochs2: 30
 
     accelerator: gpu  # need to be gpu instead of ddp for dp settings
-
-    # 最新版训练框架，克服前向过程加噪隐私泄露问题，修改为阶段1主动加入额外高斯噪声 noise_scale_1, 目前方法为 < phase 1 Gaussian DP (no-cond) + phase 2 DP-SGD (cond) + noise multiplicity>
-    # client:       6       6      6        6        6        6         6
-    # Epsilon:      1       1      1        1        1        1         1
-    # noise_1:      20      22     25       27       30       -(消融)    19.7
-    # noise_2:      35      14.9   11.7     11       10.4     9.2       -(消融)
-    # epoch1:       3       3      3        3        3        -         3
-    # epoch2:       30      30     30       30       30       30        -
-    # FID:         (145.7) (144)  (142.9)  (142.6)  (143.3)  (160.1)   (324.4)
-    # Acc:                        (25.7)   (26.0)            (23.2)
