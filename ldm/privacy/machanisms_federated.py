@@ -35,7 +35,7 @@ def eps_from_mu(mu, delta):
 
 def gdp_mech(sample_rate1, sample_rate2, niter1, niter2, sigma, sigma_s, alpha_cumprod_S, d, delta):
 
-    mu_1 = sample_rate1 * sqrt(niter1 * (np.exp(4 * d / (sigma_s ** 2)) - 1))  # warm-up phase
+    mu_1 = sample_rate1 * sqrt(niter1 * (np.exp(4 * d / (sigma_s ** 2)) - 1)) 
     mu_2 = sample_rate2 * sqrt(niter2 * (np.exp(1 / (sigma ** 2)) - 1))
 
     mu = sqrt(mu_1 ** 2 + mu_2 ** 2)
@@ -86,25 +86,21 @@ class FederatedDataModule(LightningDataModule):
         for c in class_indices:
             np.random.shuffle(c)
 
-        # 所有样本数量
         total_samples = sum(len(c) for c in class_indices)
         samples_per_client = total_samples // num_clients
 
         client_indices = [[] for _ in range(num_clients)]
         client_class_counts = [0 for _ in range(num_clients)]
 
-        # 创建初始 Dirichlet 分布映射
         for class_id, idxs in enumerate(class_indices):
             proportions = np.random.dirichlet(alpha * np.ones(num_clients))
-            # 防止极小值造成不分配
+            
             proportions = np.clip(proportions, 1e-6, 1)
             proportions = proportions / proportions.sum()
 
-            # 根据剩余容量分配样本
             available_space = [samples_per_client - len(client_indices[i]) for i in range(num_clients)]
             class_allocation = (proportions * len(idxs)).astype(int)
 
-            # 修正总分配数以保持精度
             while class_allocation.sum() > len(idxs):
                 class_allocation[np.argmax(class_allocation)] -= 1
             while class_allocation.sum() < len(idxs):
@@ -130,48 +126,6 @@ class FederatedDataModule(LightningDataModule):
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size)
-
-
-# Federated DataModule-random split IID
-# class FederatedDataModule(LightningDataModule):
-#     def __init__(self, base_datamodule, client_id, num_clients, batch_size=None):
-#         super().__init__()
-#         self.base_dm = base_datamodule
-#         self.client_id = client_id
-#         self.num_clients = num_clients
-#         self.batch_size = batch_size or base_datamodule.batch_size
-#
-#     def prepare_data(self):
-#         self.base_dm.prepare_data()
-#
-#     def setup(self, stage=None):
-#         self.base_dm.setup(stage)
-#         # 1. get full training dataset
-#         full_train_dataset = self.base_dm.train_dataloader().dataset
-#         train_len = len(full_train_dataset)
-#         train_indices = np.arange(train_len)
-#         np.random.seed(42)
-#         np.random.shuffle(train_indices)
-#         # 2. split training sets
-#         train_client_size = train_len // self.num_clients
-#         train_start = self.client_id * train_client_size
-#         train_end = (self.client_id + 1) * train_client_size if self.client_id != self.num_clients - 1 else train_len
-#         self.train_dataset = Subset(full_train_dataset, train_indices[train_start:train_end])
-#         # 3. split validation sets
-#         full_val_dataset = self.base_dm.val_dataloader().dataset
-#         val_len = len(full_val_dataset)
-#         val_indices = np.arange(val_len)
-#         np.random.shuffle(val_indices)
-#         val_client_size = val_len // self.num_clients
-#         val_start = self.client_id * val_client_size
-#         val_end = (self.client_id + 1) * val_client_size if self.client_id != self.num_clients - 1 else val_len
-#         self.val_dataset = Subset(full_val_dataset, val_indices[val_start:val_end])
-#
-#     def train_dataloader(self):
-#         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
-#
-#     def val_dataloader(self):
-#         return DataLoader(self.val_dataset, batch_size=self.batch_size)
 
 
 def eps_from_config(config):
@@ -247,14 +201,6 @@ def eps_from_config(config):
         delta=config.model.params.dp_config.delta,
     )
 
-    # sigma_1 = config.model.params.dp_config.noise_scale_s
-    # target_alpha_cumprod = 1 / (1 + sigma_1 ** 2)
-    # s = torch.argmin(torch.abs(alphas_cumprod - target_alpha_cumprod)).item() + 1
-    # print(f"Corresponding timestep s = {s}")
-    # actual_alpha_bar = alphas_cumprod[s - 1].item()
-    # actual_sigma = np.sqrt((1 - actual_alpha_bar) / actual_alpha_bar)
-    # print(f"Recovered sigma from timestep {s} = {actual_sigma}")
-
     return epsilon
 
 
@@ -275,4 +221,5 @@ if __name__ == "__main__":
 
     sigma1 = config.model.params.dp_config.noise_scale_s
     sigma2 = config.model.params.dp_config.noise_scale
+
     print(f"(noise1, noise2) = ({sigma1}, {sigma2})")
