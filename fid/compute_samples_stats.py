@@ -41,7 +41,7 @@ def main(args):
 
     elif images.shape[2] == 1:
 
-        h, w = images.shape[-2], images.shape[-1]  # 自动获取高和宽
+        h, w = images.shape[-2], images.shape[-1]  
         images = images.view(-1, 1, h, w)
         images = images.repeat(1, 3, 1, 1)
         # # images = images.view(-1, 1, 32, 32)
