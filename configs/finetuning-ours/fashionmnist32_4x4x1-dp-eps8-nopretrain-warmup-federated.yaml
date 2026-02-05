@@ -1,0 +1,166 @@
+model:
+#  base_learning_rate: 5e-7   # set to target_lr by starting main.py with '--scale_lr False'
+
+  learning_rate1: 3e-4
+  learning_rate2: 6e-4
+
+  target: ldm.models.diffusion.ddpm.LatentDiffusion
+  params:
+    # load pretrained LDM
+#    ckpt_path:  ''
+
+    # DDPM beta schedule params (linear interpolation)
+    linear_start: 0.0015
+    linear_end: 0.0155
+    timesteps: 1000
+    num_timesteps_cond: 1
+    log_every_t: 200
+    s: 1000
+    scale_factor: 0.056
+
+    # The key of the input to the stage in the batch object (e.g. batch["image"])
+    loss_type: l2
+    first_stage_key: "image"
+    cond_stage_key: "class_label"
+
+    # The size of the latent space representation of the image
+    image_size: 4
+    channels: 1
+
+    # Training options
+    cond_stage_trainable: False
+    conditioning_key: "adm"
+#    cond_stage_trainable:  True
+#    conditioning_key: "crossattn"
+
+    # Train only partial model
+#    train_condition_only: True
+#    ablation_blocks: -1
+#    attention_flag: 'spatial'
+
+    # Logging options
+    monitor: 'val/loss_simple_ema'
+
+    # Differential privacy options (also requires trainer.max_steps to be set)
+    dp_config:
+      enabled: True
+      epsilon: 8
+      delta: 1.0e-5
+      max_grad_norm: 1
+      poisson_sampling: True
+      max_batch_size: 15
+      num_noise_sample: 32
+
+      noise_scale_s: 4
+      noise_scale: 3.51
+
+    scheduler_config: # 10000 warmup steps
+      target: ldm.lr_scheduler.LambdaLinearScheduler
+      params:
+        warm_up_steps: [10000]
+        cycle_lengths: [10000000000000]
+        f_start: [1.e-6]
+        f_max: [1.]
+        f_min: [ 1.]
+
+    unet_config:
+      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
+      params:
+        image_size: 4
+        in_channels: 1
+        out_channels: 1
+        model_channels: 64
+        attention_resolutions:
+          - 1
+          - 2
+        num_res_blocks: 1
+        channel_mult:
+          - 1
+          - 2
+        num_heads: 2
+        use_spatial_transformer: False
+#        use_spatial_transformer: true
+#        transformer_depth: 1
+        use_scale_shift_norm: true
+        resblock_updown: true
+        num_classes: 10
+#        context_dim: 512
+
+    cond_stage_config:
+      target: ldm.modules.encoders.modules.ClassEmbedder
+      params:
+        n_classes: 10
+        embed_dim: 512
+        key: class_label
+
+    first_stage_config:
+      target: ldm.models.autoencoder.AutoencoderKL
+      params:
+        embed_dim: 1
+        monitor: "val/rec_loss"
+#        ckpt_path: ""
+        ddconfig:
+          double_z: True
+          z_channels: 1
+          resolution: 32
+          in_channels: 1
+          out_ch: 1
+          ch: 128
+          ch_mult: [1,2,3,5]
+          num_res_blocks: 2
+          attn_resolutions: [32,16,8 ]
+          dropout: 0.0
+        lossconfig:
+          target: torch.nn.Identity
+      # Distribute VAE model for each client
+      client_ckpt:
+        0: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_0/checkpoints/last.ckpt"
+        1: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_1/checkpoints/last.ckpt"
+        2: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_2/checkpoints/last.ckpt"
+        3: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_3/checkpoints/last.ckpt"
+        4: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_4/checkpoints/last.ckpt"
+        5: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_5/checkpoints/last.ckpt"
+
+data:
+  batch_size1: 32     # Non-Private Training batch size
+  batch_size2: 4096   # Private Training batch size
+
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 4096
+    num_workers: 5
+    wrap: False 
+    train:
+      target: ldm.data.fashionmnist.FashionMNISTTrain
+      params:
+        size: 32
+    validation:
+      target: ldm.data.fashionmnist.FashionMNISTVal
+      params:
+        size: 32
+
+lightning:
+  callbacks:
+    image_logger:
+      target: main.ImageLogger
+      params:
+        batch_frequency: 10000
+        max_images: 8
+        increase_log_steps: False
+
+  trainer:
+    benchmark: True
+#    max_epochs: 200
+    epochs1: 3
+    epochs2: 80
+    accelerator: gpu  # need to be gpu instead of ddp for dp settings
+
+    # 最新版训练框架，克服前向过程加噪隐私泄露问题，修改为阶段1主动加入额外高斯噪声 noise_scale_s, 目前方法为 < phase 1 Gaussian DP (no-cond) + phase 2 DP-SGD (cond) + noise multiplicity>
+    # Epsilon:      8
+    # noise_s:      4
+    # noise:        3.51
+    # epoch1:       3
+    # epoch2:       80
+    # FID:         (25.2)
+    # Acc:         (73.6)
+

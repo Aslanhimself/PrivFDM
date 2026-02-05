@@ -1,0 +1,167 @@
+model:
+#  base_learning_rate: 1.0e-06
+
+  learning_rate1: 3e-4
+  learning_rate2: 3e-4
+
+  target: ldm.models.diffusion.ddpm.LatentDiffusion
+  params:
+#    ckpt_path:  ''
+
+    linear_start: 0.0015
+    linear_end: 0.0155
+    timesteps: 1000
+    num_timesteps_cond: 1
+    log_every_t: 200
+    s: 1000
+    scale_factor: 0.102
+
+    loss_type: l2
+    first_stage_key: "image"
+    cond_stage_key: "class_label"
+
+    image_size: 8
+    channels: 3
+
+    cond_stage_trainable: False
+    conditioning_key: "adm"
+#    cond_stage_trainable: true
+#    conditioning_key: "crossattn"
+
+#    train_condition_only: true
+#    attention_flag: "spatial"
+#    ablation_blocks: -1
+
+    monitor: "val/loss_simple_ema"
+
+    dp_config:
+      enabled: true
+      epsilon: 15
+      delta: 1e-5
+      max_grad_norm: 1
+      poisson_sampling: true
+      max_batch_size: 3
+      num_noise_sample: 8
+
+      noise_scale_s: 11.5
+      noise_scale: 1.76
+
+    scheduler_config:
+      target: ldm.lr_scheduler.LambdaLinearScheduler
+      params:
+        warm_up_steps:
+          - 10000
+        cycle_lengths:
+        - 10000000000000
+        f_start:
+        - 1.0e-06
+        f_max:
+        - 1.0
+        f_min:
+        - 1.0
+
+    unet_config:
+      target: ldm.modules.diffusionmodules.openaimodel.UNetModel
+      params:
+        image_size: 8
+        in_channels: 3
+        out_channels: 3
+        model_channels: 128
+        attention_resolutions:
+          - 1
+          - 2
+          - 4
+        channel_mult:
+          - 1
+          - 2
+          - 2
+          - 4
+        num_res_blocks: 2
+        num_heads: 8
+        use_spatial_transformer: False
+#        transformer_depth: 1
+        num_classes: 10
+#        context_dim: 5
+
+    cond_stage_config:
+      target: ldm.modules.encoders.modules.ClassEmbedder
+      params:
+        n_classes: 10
+        embed_dim: 5
+        key: class_label
+
+    first_stage_config:
+      target: ldm.models.autoencoder.AutoencoderKL
+      params:
+        embed_dim: 3
+        monitor: "val/rec_loss"
+#        ckpt_path: ""
+        ddconfig:
+          double_z: true
+          z_channels: 3
+          resolution: 32
+          in_channels: 3
+          out_ch: 3
+          ch: 128
+          attn_resolutions:
+            - 32
+            - 16
+            - 8
+          ch_mult:
+            - 1
+            - 2
+            - 3
+          num_res_blocks: 2
+          dropout: 0.0
+        lossconfig:
+          target: torch.nn.Identity
+      # Distribute VAE model for each client
+      client_ckpt:
+        0: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_0/checkpoints/last.ckpt"
+        1: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_1/checkpoints/last.ckpt"
+        2: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_2/checkpoints/last.ckpt"
+        3: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_3/checkpoints/last.ckpt"
+        4: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_4/checkpoints/last.ckpt"
+        5: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_5/checkpoints/last.ckpt"
+
+data:
+
+  batch_size1: 32     # warm-up Training batch size
+  batch_size2: 2048   # Private Training batch size
+
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 2048
+    num_workers: 5
+    wrap: False
+    train:
+      target: ldm.data.cifar10.CIFAR10Train
+    validation:
+      target: ldm.data.cifar10.CIFAR10Val
+
+lightning:
+  callbacks:
+    image_logger:
+      target: main.ImageLogger
+      params:
+        batch_frequency: 5000
+        max_images: 8
+        increase_log_steps: false
+
+  trainer:
+    benchmark: true
+
+    epochs1: 3
+    epochs2: 45
+
+    accelerator: gpu  # need to be gpu instead of ddp for dp settings
+
+    # 最新版训练框架，克服前向过程加噪隐私泄露问题，修改为阶段1主动加入额外高斯噪声 noise_scale_1, 目前方法为 < phase 1 Gaussian DP (no-cond) + phase 2 DP-SGD (cond) + noise multiplicity>
+    # client:       6       6       6        6        6         6          6          6          6
+    # Epsilon:      15      15      15       15       15        15         15         15         15
+    # noise_1:      11      11.2    11.5     11.9     12.5      13         11.3       11.5       11.5
+    # noise_2:      2.46    1.73    1.43     1.29     1.2       1.17       1.59       1.76       1.76
+    # epoch_1:      3       3       3        3        3         3          3          3          3
+    # epoch_2:      30      30      30       30       30        30         30         50         45
+    # FID:                         (117.6)                                (118.2)    (135.2)     (116.6)
+    # Acc:                         (31.7)                                                        (33.1)

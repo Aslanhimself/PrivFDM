@@ -1,0 +1,59 @@
+model:
+#  base_learning_rate: 4.5e-6
+  learning_rate1: 4.5e-4  # Pre-training Autoencoder learning rate
+  learning_rate2: 0  # Only for code
+
+  target: ldm.models.autoencoder.AutoencoderKL
+  params:
+    monitor: "val/rec_loss"
+    embed_dim: 3
+    lossconfig:
+      target: ldm.modules.losses.LPIPSWithDiscriminator
+      params:
+        disc_start: 50001
+        kl_weight: 0.000001
+        disc_weight: 0.5
+    ddconfig:
+      double_z: True
+      z_channels: 3
+      resolution: 32
+      in_channels: 3
+      out_ch: 3
+      ch: 128
+      ch_mult: [ 1,2,3]
+      num_res_blocks: 2
+      attn_resolutions: [32,16,8 ]
+      dropout: 0.0
+
+
+data:
+
+  batch_size1: 50  # Pre-training Autoencoder batch size
+  batch_size2: 1   # Only for code
+
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 50
+    wrap: False
+    train:
+      target: ldm.data.cifar10.CIFAR10Train
+    validation:
+      target: ldm.data.cifar10.CIFAR10Val
+
+lightning:
+  callbacks:
+    image_logger:
+      target: main.ImageLogger
+      params:
+        batch_frequency: 2500
+        max_images: 8
+        increase_log_steps: True
+
+  trainer:
+    benchmark: True
+    accumulate_grad_batches: 2
+
+    epochs1: 100   # Pre-training Autoencoder epochs
+    epochs2: 0
+
+#    max_epochs : 50
