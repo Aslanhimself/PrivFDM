@@ -115,12 +115,12 @@ model:
           target: torch.nn.Identity
       # Distribute VAE model for each client
       client_ckpt:
-        0: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_0/checkpoints/last.ckpt"
-        1: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_1/checkpoints/last.ckpt"
-        2: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_2/checkpoints/last.ckpt"
-        3: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_3/checkpoints/last.ckpt"
-        4: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_4/checkpoints/last.ckpt"
-        5: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_5/checkpoints/last.ckpt"
+        0: "logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_0/checkpoints/last.ckpt"
+        1: "logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_1/checkpoints/last.ckpt"
+        2: "logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_2/checkpoints/last.ckpt"
+        3: "logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_3/checkpoints/last.ckpt"
+        4: "logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_4/checkpoints/last.ckpt"
+        5: "logs/pretrained-autoencoder_kl_fashionmnist32_4x4x1-100epoch-federated-0.5alpha/client_5/checkpoints/last.ckpt"
 
 data:
   batch_size1: 32     # Non-Private Training batch size
@@ -155,14 +155,3 @@ lightning:
     epochs1: 3
     epochs2: 80
     accelerator: gpu  # need to be gpu instead of ddp for dp settings
-
-    # 最新版训练框架，克服前向过程加噪隐私泄露问题，修改为阶段1主动加入额外高斯噪声 noise_scale_s, 目前方法为 < phase 1 Gaussian DP (no-cond) + phase 2 DP-SGD (cond) + noise multiplicity>
-    # client:       6           6         6          6         6         6         6
-    # Epsilon:      1           1         1          1         1         1         1
-    # noise_s:      7.46        -(消融)    5.47       6.9       7.95      7.13      6.7
-    # noise:        22.85       19.3      -(消融)     24.5      22.03     23.67     25.35
-    # epoch1:       3           -         3          3         3         3         3
-    # epoch2:       80          80        -          80        80        80        80
-    # FID:         (29.4)      (28.1)               (29.7)    (27.4)    (30.2)    (31.0)
-    # Acc:         (70.78)     (70.5)                         (72.4)
-
