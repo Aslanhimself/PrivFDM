@@ -111,12 +111,12 @@ model:
           target: torch.nn.Identity
       # Distribute VAE model for each client
       client_ckpt:
-        0: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_0/checkpoints/last.ckpt"
-        1: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_1/checkpoints/last.ckpt"
-        2: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_2/checkpoints/last.ckpt"
-        3: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_3/checkpoints/last.ckpt"
-        4: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_4/checkpoints/last.ckpt"
-        5: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_5/checkpoints/last.ckpt"
+        0: "logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_0/checkpoints/last.ckpt"
+        1: "logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_1/checkpoints/last.ckpt"
+        2: "logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_2/checkpoints/last.ckpt"
+        3: "logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_3/checkpoints/last.ckpt"
+        4: "logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_4/checkpoints/last.ckpt"
+        5: "logs/pretrained-autoencoder_kl_mnist32_4x4x1-100epoch-federated-0.5alpha/client_5/checkpoints/last.ckpt"
 
 
 data:
@@ -152,18 +152,4 @@ lightning:
     epochs1: 3
     epochs2: 80
     accelerator: gpu  # need to be gpu instead of ddp for dp settings
-
-    # 最新版训练框架，克服前向过程加噪隐私泄露问题，修改为阶段1主动加入额外高斯噪声 noise_scale_s, 目前方法为 < phase 1 Gaussian DP (no-cond) + phase 2 DP-SGD (cond) + noise multiplicity>
-    # client:    6       6       6       6        6        6        6        6         6        6        6        6        6        6         6         6          6        6         6          6
-    # Epsilon:   1       1       1       1        1        1        1        1         1        1        1        1        1        1         1         1          1        1         1          1
-    # noise_s:   17.2    8.8     7.95    7.46     7.13     6.9      6.5      6.2       5.95     5.8      5.7      6.9      6.9      7.46      -(消融)    5.47       7.95     7.13      6.7        7.13
-    # noise:     12      13      13.5    14       14.5     15       16.3     18.05     21       24.2     28.1     19.4     24.5     22.85     19.3      -(消融)     22.03    23.67     25.35      18.8
-    # epoch1:    3       3       3       3        3        3        3        3         3        3        3        3        3        3         -         3          3        3         3          3
-    # epoch2:    30      30      30      30       30       30       30       30        30       30       30       50       80       80        80        -          80       80        80         50
-    # FID:               31.0           (26.2)            (28.1)    36.6     29.3     (30.2)    35.1              21.3    (33.0)   (21.9)    (22.3)    (238.1)    (22.5)   (20.0)    (25.1)
-    # Acc:                                                (58.02)                                                                  (71.2)    (67.9)    (13.27)             (70.3)
-    # S:                                        650(54.1)                                                                                                                                        900(22.1)
-    #                                                                                                                                                                                            800(23.1)
-
-
 
