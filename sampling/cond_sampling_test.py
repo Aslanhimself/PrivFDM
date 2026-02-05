@@ -1,0 +1,142 @@
+import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from math import ceil
+import torch
+# import torch.nn as nn
+import numpy as np
+from omegaconf import OmegaConf
+
+from ldm.util import instantiate_from_config
+from ldm.models.diffusion.ddim import DDIMSampler
+
+from einops import rearrange
+from torchvision.utils import make_grid
+from torchvision import transforms
+from PIL import Image
+
+import argparse
+
+def load_model_from_config(config, ckpt):
+    print(f"Loading model from {ckpt}")
+    pl_sd = torch.load(ckpt)  # , map_location="cpu")
+    sd = pl_sd["state_dict"]
+    model = instantiate_from_config(config.model)
+    m, u = model.load_state_dict(sd, strict=False)
+    model.cuda()
+    model.eval()
+    return model
+
+
+def main():
+    # Training settings
+    parser = argparse.ArgumentParser(
+        # description="Opacus MNIST Example",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("-y", "--yaml", type=str, default=None, help="load the yaml from the specified path")
+    parser.add_argument("-ckpt", "--ckpt_path", type=str, default=None, help="load the checkpoint from the specified path")
+    parser.add_argument("-step", "--ddim_step", type=int, default=200, help="number of steps for ddim sampling")
+    parser.add_argument("-eta", "--eta", type=float, default=1.0, help="eta for ddim sampling (0.0 yields deterministic sampling)")
+    parser.add_argument("-scale", "--scale", type=float, default=1, help="scale for ddim sampling (unconditional_guidance_scale=scale)")
+    parser.add_argument("-n", "--num_samples", type=int, default=20000, help="number of samples to generate")
+    parser.add_argument("-c", "--classes", type=int, nargs="+", default=0, help="class/label numbers you want to generate for, e.g. 0 1 3 5")
+    parser.add_argument("-bs", "--batch_size", type=int, default=500, help="mini batch size of sampling (to avoid cuda out of memory, change to a smaller value if needed)")
+
+    args = parser.parse_args()
+
+    config = OmegaConf.load(args.yaml)
+    model = load_model_from_config(config, args.ckpt_path)
+    ddim_steps = args.ddim_step
+    ddim_eta = args.eta
+    scale = args.scale
+
+    num_samples = args.num_samples
+    classes = args.classes
+    n_classes = len(classes)
+    batch_size = args.batch_size
+    n_samples_per_class = int(num_samples / len(classes))
+
+    sampler = DDIMSampler(model)
+    shape = [model.model.diffusion_model.in_channels,
+             model.model.diffusion_model.image_size,
+             model.model.diffusion_model.image_size]
+
+    all_samples = list()
+
+    with torch.no_grad():
+        for class_label in classes:
+            print(f"rendering {n_samples_per_class} examples of class '{class_label}' in {ddim_steps} steps and using s={scale:.2f}.")
+
+            # for cross-attention label embedding
+            # xc = torch.tensor([class_label])
+            # c = model.get_learned_conditioning({model.cond_stage_key: xc.to(model.device)})
+
+            batch_size_temp = batch_size
+            n_iters = ceil(n_samples_per_class / batch_size)
+            for idx in range(n_iters):
+                # if idx == batch_size_temp - 1: batch_size_temp = n_samples_per_class % batch_size
+                samples_ddim, _ = sampler.sample(
+                    S=ddim_steps,
+
+                    # for cross-attention label embedding
+                    # conditioning=c.repeat(batch_size_temp, 1, 1),
+
+                    # for basic label embedding
+                    conditioning= {model.cond_stage_key: torch.full((batch_size_temp,), class_label, device=model.device, dtype=torch.long)},
+
+                    batch_size=batch_size,
+                    shape=shape,
+                    verbose=False,
+                    eta=ddim_eta,
+
+                    # for classifier-free guidance
+                    # unconditional_guidance_scale=scale,
+                    # unconditional_conditioning= {model.cond_stage_key: torch.full((batch_size_temp,), n_classes, device=model.device, dtype=torch.long)}
+
+                )
+
+                x_samples_ddim = model.decode_first_stage(samples_ddim)
+                x_samples_ddim = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
+                # transform = transforms.Grayscale()
+                # x_samples_ddim = transform(x_samples_ddim)
+                all_samples.append(x_samples_ddim)
+
+    grid = torch.stack(all_samples, 0)
+    # grid_to_plot = rearrange(grid, 'n b c h w -> (n b) c h w')
+    # grid_to_plot = make_grid(grid_to_plot, nrow=10)
+
+    # novel permutation for presentation
+    # grid = torch.stack(all_samples, dim=0)  # [n, b, c, h, w]
+    # grid = grid.permute(1, 0, 2, 3, 4)  # [b, n, c, h, w]
+    # grid_to_plot = rearrange(grid, 'b n c h w -> (b n) c h w')  # [b*n, c, h, w]
+    # grid_to_plot = make_grid(grid_to_plot, nrow=10)
+
+    # to image
+    # grid_to_plot = 255. * rearrange(grid_to_plot, 'c h w -> h w c').detach().cpu().numpy()
+    # plotted_imgs = Image.fromarray(grid_to_plot.astype(np.uint8))
+
+    # 需要展示生成图片再使用下列代码否则生成图片太多报错
+    # plotted_imgs.save("ours_mnist_eps1.jpg")
+    # plotted_imgs.save("ours_mnist_eps1_crossattn.jpg")
+    # plotted_imgs.save("ours_fashionmnist_eps1.jpg")
+    # plotted_imgs.save("ours_fashionmnist_eps1_crossattn.jpg")
+    # plotted_imgs.save("ours_cifar10_eps1.jpg")
+    # plotted_imgs.save("ours_cifar10_eps1_crossattn.jpg")
+
+    labels = np.array(classes)
+    labels = np.repeat(labels, n_samples_per_class)
+    labels = torch.tensor(labels)
+
+    dic = {'image': grid,
+           'class_label': labels}
+
+    # change the name to the used dataset
+    torch.save(dic, 'conditional_mnist_samples.pt')
+    # torch.save(dic, 'conditional_fashionmnist_samples.pt')
+    # torch.save(dic, 'conditional_cifar10_samples.pt')
+    # torch.save(dic, 'conditional_celeba_samples.pt')
+
+if __name__ == "__main__":
+    main()
