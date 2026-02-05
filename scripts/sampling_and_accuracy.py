@@ -30,7 +30,7 @@ def load_model_from_config(config, ckpt):
 
 def get_dataset_names(data_config: dict):
     train_target = data_config["params"]["train"]["target"]
-    dataset_names= train_target.split(".")[-1]  # 提取类名部分
+    dataset_names= train_target.split(".")[-1] 
     return dataset_names
 
 
