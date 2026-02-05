@@ -15,7 +15,6 @@ class CelebABase(CelebA):
             **kwargs
         )
 
-        # 找到 Male 属性的索引
         self.male_idx = self.attr_names.index("Male")
 
         self.targets = [int(attr[self.male_idx]) for attr in self.attr]
@@ -28,7 +27,6 @@ class CelebABase(CelebA):
         # Reshape from C x W x H to H x W x C
         image = image.permute(1, 2, 0).contiguous()
 
-        # 取出 Male 属性 (0 or 1)
         label = attr[self.male_idx].long()
 
         # return {"image": image}
