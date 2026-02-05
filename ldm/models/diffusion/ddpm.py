@@ -107,7 +107,7 @@ class LatentDiffusion(DDPM):
         ignore_keys = kwargs.pop("ignore_keys", [])
         super().__init__(phase=phase, client_id=client_id, s=s, conditioning_key=conditioning_key, *args, **kwargs)
 
-        self.phase = phase  # 初始阶段
+        self.phase = phase  
         self.client_id = client_id
         self.S = s
         self.num_noise_sample = dp_config.num_noise_sample
@@ -160,7 +160,7 @@ class LatentDiffusion(DDPM):
         self.use_lora = use_lora
 
     def set_phase(self, phase):
-        self.phase = phase  # 允许外部修改 phase
+        self.phase = phase  
 
     def init_attention(self, attention_flag='spatial'):
         ignore_keys = []
@@ -647,18 +647,6 @@ class LatentDiffusion(DDPM):
 
             # x = torch.clamp(x, min=-1, max=1.0)  # clip the latent to [-1, 1]
 
-            # compute mean latent
-            # avg_latent = x.mean(dim=0, keepdim=True)  # keep shape unchanged
-            # avg_latent = torch.clamp(avg_latent, min=-1, max=1.0)  # 裁剪限制 latent 到 [-1, 1]
-            # avg_latent = avg_latent.repeat(x.shape[0], 1, 1, 1)  # reshape to [B, C, H, W]
-            # x = avg_latent  # 替换原来的 batch latent
-
-            # save mean latent for 1 batch
-            # torch.save({
-            #     'latent': x.cpu(),
-            #     'mean_latent': avg_latent.cpu()
-            # }, f"saved_batch_{1}.pt")
-
             if self.model.conditioning_key is not None:
                 assert c is not None
                 if self.cond_stage_trainable:
@@ -673,23 +661,6 @@ class LatentDiffusion(DDPM):
                 if self.shorten_cond_schedule:  # TODO: drop this option
                     tc = self.cond_ids[t].to(self.device)
                     c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
-
-        # elif phase == "1":  # Non-Private Training
-        #     t = torch.randint(self.S, self.num_timesteps, (x.shape[0],), device=self.device).long()
-        #
-        #     x = torch.clamp(x, min=-1, max=1.0)  # 裁剪限制 latent 到 [-1, 1]
-        #
-        #     if self.model.conditioning_key is not None:
-        #         assert c is not None
-        #         if self.cond_stage_trainable:
-        #             c = self.get_learned_conditioning(c)
-        #
-        #             c = torch.zeros_like(c)  # phase1 condition = 0
-        #             # c = torch.randn_like(c) * 0.01
-        #
-        #         if self.shorten_cond_schedule:  # TODO: drop this option
-        #             tc = self.cond_ids[t].to(self.device)
-        #             c = self.q_sample(x_start=c, t=tc, noise=torch.randn_like(c.float()))
 
         elif phase == "2":
 
@@ -758,14 +729,6 @@ class LatentDiffusion(DDPM):
         return self.p_losses(x, c, t, *args, **kwargs)
 
     def apply_cfg_to_condition(self, c, p=0.1, n_classes=10):
-        """
-        对字典 c 中的 cond_stage_key 字段应用 CFG（Classifier-Free Guidance）机制。
-        :param c: 字典，通常包含 cond_stage_key 和其他输入
-        :param p: 随机选择为无条件路径的概率（比如 10%）
-        :param n_classes: 总的类数 用于无条件路径
-        :param device: 设备类型（如 'cuda' 或 'cpu'）
-        :return: 更新后的字典 c
-        """
         with torch.no_grad():
             y = c.get(self.cond_stage_key, None)
             if y is None:
