@@ -117,12 +117,12 @@ model:
           target: torch.nn.Identity
       # Distribute VAE model for each client
       client_ckpt:
-        0: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_0/checkpoints/last.ckpt"
-        1: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_1/checkpoints/last.ckpt"
-        2: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_2/checkpoints/last.ckpt"
-        3: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_3/checkpoints/last.ckpt"
-        4: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_4/checkpoints/last.ckpt"
-        5: "/home/wenbo/DP-LDMs/logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_5/checkpoints/last.ckpt"
+        0: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_0/checkpoints/last.ckpt"
+        1: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_1/checkpoints/last.ckpt"
+        2: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_2/checkpoints/last.ckpt"
+        3: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_3/checkpoints/last.ckpt"
+        4: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_4/checkpoints/last.ckpt"
+        5: "logs/pretrained-autoencoder_kl_cifar1032_8x8x3-100epoch-federated-0.5alpha/client_5/checkpoints/last.ckpt"
 
 
 data:
@@ -156,13 +156,3 @@ lightning:
     epochs2: 30
 
     accelerator: gpu  # need to be gpu instead of ddp for dp settings
-
-    # 最新版训练框架，克服前向过程加噪隐私泄露问题，修改为阶段1主动加入额外高斯噪声 noise_scale_1, 目前方法为 < phase 1 Gaussian DP (no-cond) + phase 2 DP-SGD (cond) + noise multiplicity>
-    # client:       6       6         6        6        6
-    # Epsilon:      5       5         5        5        5
-    # noise_1:      13      13.5      14       15       17
-    # noise_2:      5.71    3.57      3.04     2.65     2.44
-    # epoch_1:      3       3         3        3        3
-    # epoch_2:      30      30        30       30       30
-    # FID:                                    (119.5)
-    # Acc:                                    (30.5)
