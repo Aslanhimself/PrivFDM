@@ -219,49 +219,6 @@ class FederatedDataModule(LightningDataModule):
         return DataLoader(self.val_dataset, batch_size=self.batch_size)
 
 
-# Federated DataModule-random split IID
-# class FederatedDataModule(LightningDataModule):
-#     def __init__(self, base_datamodule, client_id, num_clients, batch_size=None):
-#         super().__init__()
-#         self.base_dm = base_datamodule
-#         self.client_id = client_id
-#         self.num_clients = num_clients
-#         self.batch_size = batch_size or base_datamodule.batch_size
-#
-#     def prepare_data(self):
-#         self.base_dm.prepare_data()
-#
-#     def setup(self, stage=None):
-#         self.base_dm.setup(stage)
-#         # 1. get full training dataset
-#         full_train_dataset = self.base_dm.train_dataloader().dataset
-#         train_len = len(full_train_dataset)
-#         train_indices = np.arange(train_len)
-#         np.random.seed(42)
-#         np.random.shuffle(train_indices)
-#
-#         # 2. split training dataset
-#         train_client_size = train_len // self.num_clients
-#         train_start = self.client_id * train_client_size
-#         train_end = (self.client_id + 1) * train_client_size if self.client_id != self.num_clients - 1 else train_len
-#         self.train_dataset = Subset(full_train_dataset, train_indices[train_start:train_end])
-#
-#         # 3. split validation dataset
-#         full_val_dataset = self.base_dm.val_dataloader().dataset
-#         val_len = len(full_val_dataset)
-#         val_indices = np.arange(val_len)
-#         np.random.shuffle(val_indices)
-#         val_client_size = val_len // self.num_clients
-#         val_start = self.client_id * val_client_size
-#         val_end = (self.client_id + 1) * val_client_size if self.client_id != self.num_clients - 1 else val_len
-#         self.val_dataset = Subset(full_val_dataset, val_indices[val_start:val_end])
-#
-#     def train_dataloader(self):
-#         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
-#
-#     def val_dataloader(self):
-#         return DataLoader(self.val_dataset, batch_size=self.batch_size)
-
 # --- 2. Utility functions for federated learning ---
 
 
@@ -548,8 +505,8 @@ if __name__ == "__main__":
             # Create trainer1 for each client
             client_logdir = os.path.join(logdir, f"client_{i}")
             ckpt_dir1 = os.path.join(client_logdir, "checkpoints_phase1")
-            os.makedirs(ckpt_dir1, exist_ok=True)  # 创建路径
-            # 单独为每个 client 构造 callback list1
+            os.makedirs(ckpt_dir1, exist_ok=True)  
+    
             ckpt_callback1 = instantiate_from_config({
                 "target": "pytorch_lightning.callbacks.ModelCheckpoint",
                 "params": {
@@ -571,8 +528,8 @@ if __name__ == "__main__":
 
             # Create trainer2 for each client
             ckpt_dir2 = os.path.join(client_logdir, "checkpoints_phase2")
-            os.makedirs(ckpt_dir2, exist_ok=True)  # 创建路径
-            # 单独为每个 client 构造 callback list2
+            os.makedirs(ckpt_dir2, exist_ok=True)  
+           
             ckpt_callback2 = instantiate_from_config({
                 "target": "pytorch_lightning.callbacks.ModelCheckpoint",
                 "params": {
@@ -604,14 +561,6 @@ if __name__ == "__main__":
             # if config.model.params.first_stage_config.client_ckpt is not None:
             #     model.instantiate_first_stage(config.model.params.first_stage_config, client_index=i)
             client_models.append(copy.deepcopy(model))
-
-        # Distribute model for each client
-        # print("#### Learning Rate ####")
-        # model.learning_rate1 = config.model.learning_rate1
-        # model.learning_rate2 = config.model.learning_rate2
-        # print(f"Setting phase I learning rate to {model.learning_rate1:.2e}, "
-        #       f"phase II learning rate to {model.learning_rate2:.2e}")
-        # client_models = [copy.deepcopy(model) for _ in range(num_clients)]
 
         # allow checkpointing via USR1
         def melk(*args, **kwargs):
@@ -693,4 +642,5 @@ if __name__ == "__main__":
             os.makedirs(os.path.split(dst)[0], exist_ok=True)
             os.rename(logdir, dst)
         if client_trainers2[0].global_rank == 0:
+
             print(client_trainers2[0].profiler.summary())
